@@ -15,7 +15,8 @@
     "init": "node bin/okf-brain.js init",
     "viz": "node bin/okf-brain.js viz",
     "consolidate": "node bin/okf-brain.js consolidate",
-    "lint": "node bin/okf-brain.js lint"
+    "lint": "node bin/okf-brain.js lint",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "okf",
