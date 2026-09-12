@@ -21,6 +21,7 @@ export function consolidateDailyKnowledge(cwd: string, targetDate?: string): Con
     config = {
       projectName: 'OKF Brain',
       vaultPath: './brain',
+      language: 'en',
       domain: 'custom',
       categories: [{ id: 'learnings', label: 'Learnings', description: 'Daily insights', color: '#34d399' }],
       connectedApps: [],
@@ -71,7 +72,31 @@ export function consolidateDailyKnowledge(cwd: string, targetDate?: string): Con
 
   const defaultCategories = config.categories.map(c => `- [[${c.id}]]: Status updated.`).join('\n');
 
-  const summaryBody = `---
+  const isSpanish = (config.language || '').toLowerCase().startsWith('es');
+  const mainLearningRoot = isSpanish ? 'aprendizajes' : 'learnings';
+
+  const summaryBody = isSpanish ? `---
+${yaml.stringify(summaryFm).trim()}
+---
+
+# 🧠 Consolidación Diaria y Evolución del Cerebro (${dateStr})
+
+## 🌟 Síntesis del Grafo de Conocimiento
+Ciclo de síntesis diario automático para **${config.projectName}**.
+
+### Clústeres Estelares Activos:
+${defaultCategories}
+
+## 🔍 Conclusiones y Aprendizajes Clave
+${dailyLogContent ? dailyLogContent : '- Mantenimiento regular del sistema. Todos los nodos y enlaces orbitales verificados.'}
+
+## 🔗 Enlaces Semánticos ([[wikilinks]])
+- Núcleo Central: [[${mainLearningRoot}]]
+- Clústeres Conectados: ${config.categories.map(c => `[[${c.id}]]`).join(', ')}
+
+---
+*Generado automáticamente por el Motor de Aprendizaje Continuo OKF Brain.*
+` : `---
 ${yaml.stringify(summaryFm).trim()}
 ---
 

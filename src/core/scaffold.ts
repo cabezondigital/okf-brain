@@ -3,7 +3,7 @@ import path from 'path';
 import yaml from 'yaml';
 import { OnboardingAnswers, OKFConfig } from '../types.js';
 
-export const DOMAIN_PRESETS: Record<string, { categories: Array<{ id: string; label: string; description: string; color: string }> }> = {
+export const DOMAIN_PRESETS_EN: Record<string, { categories: Array<{ id: string; label: string; description: string; color: string }> }> = {
   assistant: {
     categories: [
       { id: 'contacts', label: 'Contacts & VIPs', description: 'Profiles, relationships, and interaction notes', color: '#38bdf8' },
@@ -48,11 +48,60 @@ export const DOMAIN_PRESETS: Record<string, { categories: Array<{ id: string; la
   }
 };
 
+export const DOMAIN_PRESETS_ES: Record<string, { categories: Array<{ id: string; label: string; description: string; color: string }> }> = {
+  assistant: {
+    categories: [
+      { id: 'contactos', label: 'Contactos y VIPs', description: 'Perfiles, relaciones y notas de interacción', color: '#38bdf8' },
+      { id: 'eventos', label: 'Eventos y Citas', description: 'Galas, conferencias, reuniones y eventos de agenda', color: '#a855f7' },
+      { id: 'aprendizajes', label: 'Aprendizajes y Conocimiento', description: 'Perspectivas y descubrimientos consolidados a diario', color: '#34d399' },
+      { id: 'proyectos', label: 'Proyectos e Iniciativas', description: 'Iniciativas activas, hojas de ruta e hitos', color: '#6366f1' },
+      { id: 'preferencias', label: 'Preferencias y Estilo de Vida', description: 'Hábitos dietéticos, viajes, lujo y estilo de vida', color: '#f43f5e' }
+    ]
+  },
+  software: {
+    categories: [
+      { id: 'arquitectura', label: 'Arquitectura del Sistema', description: 'Topologías principales, subsistemas y flujos de datos', color: '#f59e0b' },
+      { id: 'decisiones', label: 'Decisiones de Arquitectura (ADRs)', description: 'Registro inmutable de decisiones técnicas y diseño', color: '#ec4899' },
+      { id: 'especificaciones', label: 'Especificaciones y APIs', description: 'Requisitos de producto y contratos de API', color: '#10b981' },
+      { id: 'dependencias', label: 'Dependencias y Stack', description: 'Librerías, versiones y servicios de terceros', color: '#06b6d4' },
+      { id: 'aprendizajes', label: 'Postmortems y Aprendizajes', description: 'Investigación de incidencias y lecciones aprendidas', color: '#34d399' }
+    ]
+  },
+  business: {
+    categories: [
+      { id: 'clientes', label: 'Clientes y Cuentas', description: 'Cuentas clave de clientes y organigramas', color: '#38bdf8' },
+      { id: 'negociaciones', label: 'Negociaciones y Pipeline', description: 'Oportunidades comerciales y etapas contractuales', color: '#f97316' },
+      { id: 'estrategia', label: 'Estrategia y OKRs', description: 'Objetivos de negocio y posicionamiento en el mercado', color: '#a855f7' },
+      { id: 'operaciones', label: 'Operaciones y Manuales', description: 'Procedimientos operativos estándar y playbooks', color: '#6366f1' },
+      { id: 'reuniones', label: 'Reuniones Directivas', description: 'Reuniones de consejo, syncs y resúmenes estratégicos', color: '#10b981' }
+    ]
+  },
+  research: {
+    categories: [
+      { id: 'articulos', label: 'Literatura y Papers', description: 'Publicaciones académicas, resúmenes y bibliografía', color: '#6366f1' },
+      { id: 'hipotesis', label: 'Hipótesis y Preguntas', description: 'Proposiciones científicas y supuestos centrales', color: '#ec4899' },
+      { id: 'experimentos', label: 'Experimentos y Benchmarks', description: 'Metodologías, entornos de prueba y ejecuciones', color: '#f59e0b' },
+      { id: 'hallazgos', label: 'Hallazgos y Conclusiones', description: 'Resultados empíricos, métricas y evidencias verificadas', color: '#34d399' }
+    ]
+  },
+  custom: {
+    categories: [
+      { id: 'conceptos', label: 'Conceptos Clave', description: 'Pilares fundamentales del conocimiento', color: '#38bdf8' },
+      { id: 'notas', label: 'Notas e Ideas', description: 'Reflexiones y entradas en bruto', color: '#a855f7' },
+      { id: 'aprendizajes', label: 'Aprendizajes', description: 'Perspectivas verificadas y síntesis diaria', color: '#34d399' }
+    ]
+  }
+};
+
+export const DOMAIN_PRESETS = DOMAIN_PRESETS_EN;
+
 export function scaffoldVault(cwd: string, answers: OnboardingAnswers): OKFConfig {
   const targetVaultDir = path.resolve(cwd, answers.vaultPath);
   fs.mkdirSync(targetVaultDir, { recursive: true });
 
-  const domainPreset = DOMAIN_PRESETS[answers.domain] || DOMAIN_PRESETS.custom;
+  const isSpanish = (answers.language || '').toLowerCase().startsWith('es');
+  const presetsMap = isSpanish ? DOMAIN_PRESETS_ES : DOMAIN_PRESETS_EN;
+  const domainPreset = presetsMap[answers.domain] || presetsMap.custom;
   const categoriesToCreate = domainPreset.categories.filter(c => 
     answers.categories.length === 0 || answers.categories.includes(c.id) || answers.categories.includes(c.label)
   );
@@ -140,6 +189,7 @@ You can edit or replace this file. AI assistants (Claude Code, Google Antigravit
   const config: OKFConfig = {
     projectName: answers.projectName,
     vaultPath: answers.vaultPath,
+    language: answers.language || 'en',
     domain: answers.domain,
     categories: categoriesToCreate,
     connectedApps: answers.connectedApps,

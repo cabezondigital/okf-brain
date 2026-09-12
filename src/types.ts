@@ -53,6 +53,7 @@ export interface GraphData {
 export interface OKFConfig {
   vaultPath: string;
   projectName: string;
+  language: string;
   domain: string;
   categories: Array<{
     id: string;
@@ -72,6 +73,7 @@ export interface OKFConfig {
 export interface OnboardingAnswers {
   projectName: string;
   vaultPath: string;
+  language: string;
   domain: 'assistant' | 'software' | 'business' | 'research' | 'custom';
   categories: string[];
   connectedApps: string[];

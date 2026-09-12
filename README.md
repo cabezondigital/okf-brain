@@ -66,6 +66,7 @@ Copy and paste this directly into **Claude Code** (`claude`):
 I want to equip this workspace with an OKF Brain (Open Knowledge Format v0.2) and a 3D Galaxy Visualizer using the `okf-brain` framework (https://github.com/cabezondigital/okf-brain).
 
 Please execute the following autonomously:
+0. Language Preference: Set the workspace and vault language to **Spanish** (or English/your chosen language). All newly generated notes, rules, and daily consolidations must be written in this language.
 1. Analyze this workspace (package.json, file tree, tech stack, and documentation) to understand its primary domain and architecture.
 2. Initialize the OKF Brain vault:
    - Run `npx okf-brain init` or scaffold the vault under `./brain` (or `./knowledge_base`).
@@ -90,6 +91,7 @@ Copy and paste this directly into **Google Antigravity** or **Gemini**:
 I want you to integrate the OKF Brain framework (https://github.com/cabezondigital/okf-brain) into this workspace as our persistent, self-learning knowledge base with 3D WebGL Galaxy visualization.
 
 Please perform these setup steps:
+0. Language Preference: Set the workspace and vault language to **Spanish** (or English/your chosen language). All newly authored notes, rules, and daily consolidations must be in this language.
 1. Workspace Inspection: Explore this repository to identify key domain entities, tech stack, and workflows.
 2. Scaffold OKF v0.2 Vault:
    - Initialize the knowledge vault under `./brain` using `npx okf-brain init` or programmatic scaffolding.

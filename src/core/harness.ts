@@ -26,6 +26,12 @@ function generateClaudeMD(cwd: string, config: OKFConfig) {
   const claudeMdPath = path.join(cwd, 'CLAUDE.md');
   const content = `# CLAUDE.md - ${config.projectName} Knowledge Guidelines
 
+## 🌐 Language Mandate
+- **Workspace Language**: **${config.language.toUpperCase()}** (${config.language.startsWith('es') ? 'Español' : 'English'}).
+- All newly created knowledge notes, titles, tags, and daily consolidations MUST be written in **${config.language.startsWith('es') ? 'Español' : 'English'}**.
+
+---
+
 ## 🌌 OKF Brain & Vault Architecture
 
 This workspace uses the **Open Knowledge Format v0.2 (OKF v0.2)** to manage its memory and knowledge graph. The vault is located at:
@@ -91,6 +97,10 @@ function generateAntigravityHarness(cwd: string, config: OKFConfig) {
 ## 🌌 OKF Brain Integration (Active Knowledge Base)
 
 This project maintains an active, self-learning knowledge graph under \`${config.vaultPath}\` compliant with **Open Knowledge Format v0.2**.
+
+### 🌐 Language Mandate:
+- **Language**: **${config.language.toUpperCase()}** (${config.language.startsWith('es') ? 'Español' : 'English'}).
+- All notes, decisions, and summaries created in \`${config.vaultPath}\` must be in **${config.language.startsWith('es') ? 'Español' : 'English'}**.
 
 ### Agent Workflow Protocol:
 1. **Mandatory Check**: Before starting any non-trivial coding or architectural task, inspect \`${config.vaultPath}\` for established patterns, ADRs, or user preferences.
