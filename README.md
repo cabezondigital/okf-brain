@@ -55,6 +55,57 @@ npx okf-brain init
 
 ---
 
+## 🤖 One-Click AI Prompts (Copy & Paste for Claude & Gemini)
+
+Equip any existing repository or workspace with an **OKF Brain** simply by pasting one of the following prompts into your AI coding assistant:
+
+### 🟣 Prompt for Claude Code
+Copy and paste this directly into **Claude Code** (`claude`):
+
+```markdown
+I want to equip this workspace with an OKF Brain (Open Knowledge Format v0.2) and a 3D Galaxy Visualizer using the `okf-brain` framework (https://github.com/cabezondigital/okf-brain).
+
+Please execute the following autonomously:
+1. Analyze this workspace (package.json, file tree, tech stack, and documentation) to understand its primary domain and architecture.
+2. Initialize the OKF Brain vault:
+   - Run `npx okf-brain init` or scaffold the vault under `./brain` (or `./knowledge_base`).
+   - Configure category clusters tailored to this project (e.g., `architecture`, `decisions`, `specs`, `learnings`).
+   - Create root category index files with YAML frontmatter (`isRoot: true`) and initial starter nodes for existing subsystems.
+3. Configure Claude Code harnesses:
+   - Create or update `CLAUDE.md` specifying the OKF v0.2 frontmatter rules (`id`, `title`, `category`, `tags`, `created`, `updated`) and mandatory `[[wikilinks]]`.
+   - Setup `.claude/commands/brain-viz.md` (`/brain-viz`) and `.claude/commands/brain-consolidate.md` (`/brain-consolidate`).
+4. Setup the continuous learning pipeline:
+   - Configure `./storage/logs` (or `./logs`) for daily conversation and operational history.
+   - Run `npx okf-brain consolidate` to verify the daily synthesis loop.
+5. Validate graph topology by running `npx okf-brain lint`.
+6. Provide instructions on how to view the live 3D Galaxy using `npx okf-brain viz`.
+```
+
+---
+
+### 🔵 Prompt for Google Antigravity & Gemini
+Copy and paste this directly into **Google Antigravity** or **Gemini**:
+
+```markdown
+I want you to integrate the OKF Brain framework (https://github.com/cabezondigital/okf-brain) into this workspace as our persistent, self-learning knowledge base with 3D WebGL Galaxy visualization.
+
+Please perform these setup steps:
+1. Workspace Inspection: Explore this repository to identify key domain entities, tech stack, and workflows.
+2. Scaffold OKF v0.2 Vault:
+   - Initialize the knowledge vault under `./brain` using `npx okf-brain init` or programmatic scaffolding.
+   - Create the root celestial stars (e.g., `architecture.md`, `decisions.md`, `learnings.md`) with valid YAML frontmatter.
+   - Extract 3-5 existing core architectural patterns from this project into atomic markdown nodes with bidirectional `[[wikilinks]]`.
+3. Configure Antigravity Harness & Skills:
+   - Create or update `GEMINI.md` mandating that the agent consult `./brain` before undertaking complex refactors and record new learnings upon completion.
+   - Create the Antigravity skill in `.agents/skills/okf-brain/SKILL.md` with instructions to read, query, and consolidate knowledge.
+4. Verify & Consolidate:
+   - Run `npx okf-brain lint` to guarantee zero broken links and valid YAML metadata.
+   - Run `npx okf-brain consolidate` to test the automated daily synthesis engine.
+5. Launch Visualizer: Confirm the 3D Galaxy Visualizer is ready to run via `npx okf-brain viz`.
+```
+
+---
+
 ## 🤖 Universal AI Harness Integration
 
 `okf-brain` bridges modern AI pair-programming agents into a shared, standardized mental model:
