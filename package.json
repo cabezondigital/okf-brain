@@ -1,0 +1,51 @@
+{
+  "name": "okf-brain",
+  "version": "1.0.0",
+  "description": "Universal AI Knowledge Vault & Brain Framework with Interactive Onboarding, Daily Auto-Learning, and 3D Galaxy Visualizer for Claude Code, Google Antigravity, and Cursor.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "okf-brain": "./bin/okf-brain.js",
+    "create-okf-brain": "./bin/okf-brain.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node bin/okf-brain.js",
+    "dev": "tsx src/index.ts",
+    "init": "node bin/okf-brain.js init",
+    "viz": "node bin/okf-brain.js viz",
+    "consolidate": "node bin/okf-brain.js consolidate",
+    "lint": "node bin/okf-brain.js lint"
+  },
+  "keywords": [
+    "okf",
+    "knowledge-base",
+    "ai-agent",
+    "claude-code",
+    "antigravity",
+    "gemini",
+    "obsidian",
+    "3d-graph",
+    "webgl",
+    "threejs",
+    "onboarding-cli",
+    "auto-learning",
+    "knowledge-graph"
+  ],
+  "author": "Yoco & OKF Community",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "picocolors": "^1.0.1",
+    "yaml": "^2.4.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.9",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.2"
+  }
+}

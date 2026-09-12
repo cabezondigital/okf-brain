@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>OKF Galaxy Visualizer - OKF 0.2 3D Spherical Cortex</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <style>
+    :root {
+      --bg: #000000;
+      --card-bg: rgba(6, 10, 18, 0.82);
+      --border: rgba(255, 255, 255, 0.08);
+      --accent-gold: #fbbf24;
+      --accent-cyan: #38bdf8;
+      --accent-pink: #f43f5e;
+      --accent-emerald: #22c55e;
+      --accent-violet: #c084fc;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background: #000000; color: var(--text); overflow: hidden; height: 100vh; width: 100vw; display: flex; flex-direction: column; user-select: none; }
+    #3d-graph { cursor: grab; }
+    #3d-graph.grabbing { cursor: grabbing; }
+    
+    /* Top Bar: Ultra Minimal & Sleek */
+    header {
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-title { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px; background: linear-gradient(135deg, #ffffff, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .badge { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; padding: 2px 7px; border-radius: 4px; background: rgba(56, 189, 248, 0.12); color: var(--accent-cyan); font-weight: 700; }
+
+    /* Mode Switcher: 3D Spherical Cortex vs 3D Galaxy */
+    .mode-selector {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 2px;
+      gap: 3px;
+      margin-left: 6px;
+    }
+    .mode-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #94a3b8;
+      padding: 4px 11px;
+      border-radius: 16px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .mode-btn:hover {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(192, 132, 252, 0.22));
+      color: #ffffff;
+      border-color: rgba(56, 189, 248, 0.45);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+    }
+    .mode-btn.active .mode-icon {
+      filter: drop-shadow(0 0 6px var(--accent-cyan));
+    }
+
+    .stats-bar { display: flex; gap: 14px; align-items: center; }
+    .stat-pill { font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; }
+    .stat-pill:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    /* Scalable Dynamic Taxonomy Dropdown */
+    
+    /* Checkbox for Layer Toggling */
+    .layer-check {
+      width: 15px;
+      height: 15px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.62rem;
+      color: #000;
+      font-weight: 900;
+      margin-left: 8px;
+      transition: all 0.2s;
+    }
+    .layer-check.checked {
+      background: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      color: #000;
+    }
+
+    /* Refresh Graph Button */
+    .learn-btn {
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.32);
+      color: #4ade80;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .learn-btn:hover {
+      background: rgba(34, 197, 94, 0.24);
+      border-color: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+      color: #fff;
+    }
+    .learn-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Notification Toast */
+    #brain-toast {
+      position: fixed;
+      top: 64px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(6, 12, 22, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
+      color: #f8fafc;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      z-index: 100;
+      display: none;
+      backdrop-filter: blur(20px);
+      transition: opacity 0.3s;
+    }
+
+    .taxonomy-dropdown-wrapper { position: relative; }
+    .taxonomy-btn {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .taxonomy-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--accent-cyan); }
+    .badge-count {
+      background: rgba(56, 189, 248, 0.18);
+      color: var(--accent-cyan);
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+    }
+    .chevron { font-size: 0.65rem; color: var(--text-muted); transition: transform 0.2s; }
+    .taxonomy-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      min-width: 240px;
+      background: rgba(6, 10, 20, 0.96);
+      backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 8px 0;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+      display: none;
+      z-index: 50;
+    }
+    .taxonomy-menu.open { display: block; }
+    .tax-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .tax-item:hover { background: rgba(56, 189, 248, 0.12); color: #fff; }
+    .tax-name { flex: 1; }
+    .tax-num {
+      font-size: 0.72rem;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 7px;
+      border-radius: 10px;
+      color: #94a3b8;
+    }
+    .tax-divider { height: 1px; background: rgba(255, 255, 255, 0.08); margin: 6px 0; }
+    .dot-pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+      display: inline-block;
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+    .master-pill {
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .dot.gold { background: var(--accent-gold); box-shadow: 0 0 8px var(--accent-gold); }
+    .dot.cyan { background: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
+    .dot.pink { background: var(--accent-pink); box-shadow: 0 0 8px var(--accent-pink); }
+    .dot.emerald { background: var(--accent-emerald); box-shadow: 0 0 8px var(--accent-emerald); }
+    .dot.violet { background: var(--accent-violet); box-shadow: 0 0 8px var(--accent-violet); }
+
+    .search-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      outline: none;
+      width: 180px;
+      transition: all 0.25s;
+    }
+    .search-input:focus { border-color: var(--accent-cyan); width: 220px; background: rgba(255,255,255,0.08); }
+
+    #main-container { flex: 1; position: relative; overflow: hidden; background: #000000; }
+    #3d-graph { width: 100%; height: 100%; }
+
+    /* =========================================
+       SEMITRANSPARENT MINI-SPHERE TRACKBALL HUD
+       ========================================= */
+    .mini-sphere-hud {
+      position: absolute;
+      bottom: 28px;
+      left: 28px;
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: transparent;
+    }
+
+    /* The glowing 3D glass mini-sphere */
+    .glass-orb {
+      position: relative;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.18), rgba(56, 189, 248, 0.06) 50%, rgba(5, 10, 20, 0.75) 90%);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), inset 0 0 16px rgba(56, 189, 248, 0.22);
+      cursor: grab;
+      transition: box-shadow 0.3s;
+    }
+    .glass-orb:active { cursor: grabbing; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), inset 0 0 24px rgba(56, 189, 248, 0.4); }
+
+    /* Subtle directional arrows on the sphere */
+    .orb-arrow {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .orb-arrow:hover { color: var(--accent-cyan); text-shadow: 0 0 8px var(--accent-cyan); }
+    .orb-arrow.up { top: 2px; left: 31px; }
+    .orb-arrow.down { bottom: 2px; left: 31px; }
+    .orb-arrow.left { top: 31px; left: 2px; }
+    .orb-arrow.right { top: 31px; right: 2px; }
+    
+    /* Center pivot of the mini-sphere */
+    .orb-center {
+      position: absolute;
+      top: 36px;
+      left: 36px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.6);
+      box-shadow: 0 0 10px var(--accent-cyan);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .orb-center:hover { transform: scale(1.3); background: #fff; box-shadow: 0 0 14px #fff; }
+
+    /* Subtle Minimalist Zoom Control */
+    .subtle-zoom-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: rgba(10, 15, 26, 0.45);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 6px;
+      border-radius: 20px;
+    }
+    .zoom-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      cursor: pointer;
+      line-height: 1;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    .zoom-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    
+    .zoom-track {
+      width: 3px;
+      height: 38px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      position: relative;
+    }
+    .zoom-pip {
+      position: absolute;
+      left: -2px;
+      top: 14px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 6px var(--accent-cyan);
+    }
+
+    /* Auto-Rotate Glass Pill */
+    .auto-rotate-pill {
+      background: rgba(10, 15, 26, 0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .auto-rotate-pill:hover { border-color: rgba(56, 189, 248, 0.4); color: #fff; }
+    .auto-rotate-pill.active { color: var(--accent-cyan); border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08); }
+
+    /* Inspection Drawer */
+    #drawer {
+      width: 390px;
+      background: rgba(4, 7, 14, 0.92);
+      backdrop-filter: blur(30px);
+      border-left: 1px solid var(--border);
+      padding: 24px;
+      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: -15px 0 40px rgba(0,0,0,0.85);
+    }
+    #drawer.open { transform: translateX(0); }
+
+    .drawer-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; }
+    .close-btn:hover { color: #fff; }
+
+    .node-type-tag { font-size: 0.7rem; text-transform: uppercase; font-weight: 700; padding: 3px 9px; border-radius: 4px; display: inline-block; letter-spacing: 0.5px; }
+    .node-title { font-size: 1.15rem; font-weight: 700; margin-top: 8px; color: #fff; line-height: 1.35; }
+    .node-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .tag { font-size: 0.68rem; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px; }
+    
+    .content-box {
+      background: rgba(0,0,0,0.55);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.84rem;
+      line-height: 1.65;
+      color: #cbd5e1;
+      word-break: break-word;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+    .content-box p { margin-bottom: 10px; }
+    .content-box p:last-child { margin-bottom: 0; }
+    .content-box ul, .content-box ol { padding-left: 0; margin: 8px 0; list-style: none; }
+    .content-box li { position: relative; padding-left: 18px; margin-bottom: 8px; line-height: 1.5; }
+    .content-box li::before { content: "•"; position: absolute; left: 4px; color: var(--accent-cyan); font-weight: bold; }
+    .content-box strong { color: #ffffff; font-weight: 600; }
+    .content-box code {
+      background: rgba(255, 255, 255, 0.08);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82em;
+    }
+    .content-box h1, .content-box h2, .content-box h3, .content-box h4 {
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 14px 0 8px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .content-box h1:first-child, .content-box h2:first-child, .content-box h3:first-child { margin-top: 0; }
+    .inline-wikilink {
+      color: #38bdf8;
+      border-bottom: 1px dashed rgba(56, 189, 248, 0.5);
+      cursor: pointer;
+      font-weight: 500;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .inline-wikilink:hover { color: #7dd3fc; border-bottom-color: #7dd3fc; }
+    .preview-img { width: 100%; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; }
+
+    .wikilinks-list { display: flex; flex-direction: column; gap: 6px; }
+    .wikilink-item { font-size: 0.8rem; color: var(--accent-cyan); background: rgba(56, 189, 248, 0.08); padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid rgba(56, 189, 248, 0.15); cursor: pointer; transition: all 0.2s; }
+    .wikilink-item:hover { background: rgba(56, 189, 248, 0.2); border-color: var(--accent-cyan); }
+  
+    /* Line Brightness Glass Capsule Slider */
+    .line-brightness-hud {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(10, 15, 26, 0.55);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 12px;
+      border-radius: 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s;
+    }
+    .line-brightness-hud:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.15);
+    }
+    .brightness-icon {
+      font-size: 0.8rem;
+      color: var(--accent-cyan);
+      filter: drop-shadow(0 0 6px var(--accent-cyan));
+      user-select: none;
+    }
+    .brightness-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 78px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .brightness-slider:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .brightness-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .brightness-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+    .brightness-val {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      min-width: 32px;
+      user-select: none;
+    }
+
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-title">🧠 OKF Galaxy Visualizer</div>
+      <div class="badge">OKF v0.2 Standard</div>
+      <div class="mode-selector">
+        <button id="mode-spherical-btn" class="mode-btn active" onclick="switchVisualizationMode('spherical')" title="3D Spherical Neural Cortex Mode">
+          <span class="mode-icon">🌐</span> 3D Spherical Cortex
+        </button>
+        <button id="mode-galaxy-btn" class="mode-btn" onclick="switchVisualizationMode('galaxy')" title="3D Galaxy Mode: Stellar systems and planetary orbits">
+          <span class="mode-icon">🌌</span> 3D Galaxy
+        </button>
+      </div>
+    </div>
+            <div class="stats-bar">
+      <div class="master-pill">
+        <span class="dot-pulse"></span>
+        <span>Vault: <strong id="stat-total-nodes" style="color: #fff">0</strong> Nodes • <strong id="stat-total-edges" style="color: var(--accent-cyan)">0</strong> Synapses</span>
+      </div>
+
+      <!-- Scalable Dynamic Taxonomy Dropdown with Checkbox Layers -->
+      <div class="taxonomy-dropdown-wrapper">
+        <button class="taxonomy-btn" id="taxonomy-btn" onclick="toggleTaxonomyMenu(event)">
+          <span style="color: var(--accent-cyan)">◈</span>
+          <span>Categories</span>
+          <span class="badge-count" id="tax-count">0</span>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="taxonomy-menu" id="taxonomy-menu">
+          <!-- Populated dynamically with checkboxes -->
+        </div>
+      </div>
+
+      <!-- Executive Action: Refresh Graph -->
+      <button class="learn-btn" id="learn-btn" onclick="triggerForcedLearning()" title="Refresh Graph & Re-index Vault">
+        <span>⚡</span>
+        <span>Refresh Graph</span>
+      </button>
+
+      <input type="text" id="search-box" class="search-input" placeholder="🔍 Search notes, tags..." oninput="onSearch(this.value)" />
+    </div>
+    <div id="brain-toast"></div>
+  </header>
+
+  <div id="main-container">
+    <div id="3d-graph"></div>
+
+    <!-- SEMITRANSPARENT MINI-SPHERE ROTATION & SUBTLE ZOOM HUD -->
+    <div class="mini-sphere-hud">
+      <!-- Mini Glass Orb with Chevrons -->
+      <div class="glass-orb" id="glass-orb" title="Drag orb to rotate 3D graph in any direction">
+        <div class="orb-arrow up" onclick="rotateSphere(0, -0.22)" title="Tilt Up">▲</div>
+        <div class="orb-arrow down" onclick="rotateSphere(0, 0.22)" title="Tilt Down">▼</div>
+        <div class="orb-arrow left" onclick="rotateSphere(0.22, 0)" title="Rotate Left">◀</div>
+        <div class="orb-arrow right" onclick="rotateSphere(-0.22, 0)" title="Rotate Right">▶</div>
+        <div class="orb-center" onclick="resetCamera()" title="Click para centrar vista"></div>
+      </div>
+
+      <!-- Subtle Slim Zoom Bar -->
+      <div class="subtle-zoom-bar">
+        <button class="zoom-btn" onclick="zoomCamera(0.85)" title="Zoom In">+</button>
+        <div class="zoom-track"><div class="zoom-pip"></div></div>
+        <button class="zoom-btn" onclick="zoomCamera(1.18)" title="Zoom Out">−</button>
+      </div>
+
+      <!-- Minimal Auto-Rotate Pill -->
+      
+      <!-- Line Brightness Slider Capsule in Left Hub -->
+      <div class="line-brightness-hud" title="Adjust line and synapse brightness">
+        <span class="brightness-icon" title="Line Brightness">✨</span>
+        <input 
+          type="range" 
+          id="link-brightness-slider" 
+          class="brightness-slider" 
+          min="0.2" 
+          max="2.5" 
+          step="0.05" 
+          value="1.0" 
+          oninput="onLinkBrightnessChange(this.value)"
+        />
+        <span id="brightness-val-text" class="brightness-val">100%</span>
+      </div>
+
+      <!-- Orbital Speed Slider Capsule in Left Hub -->
+      <div class="line-brightness-hud" title="Velocidad orbital y auto-giro (0x = Pausa)">
+        <span class="brightness-icon" title="Velocidad">⏱️</span>
+        <input 
+          type="range" 
+          id="orbital-speed-slider" 
+          class="brightness-slider" 
+          min="0" 
+          max="3.0" 
+          step="0.1" 
+          value="1.0" 
+          oninput="onOrbitalSpeedChange(this.value)"
+        />
+        <span id="speed-val-text" class="brightness-val">1.0x</span>
+      </div>
+
+      <div id="auto-rotate-pill" class="auto-rotate-pill active" onclick="toggleRotate()">
+        <span>✦</span> Auto-Rotate
+      </div>
+    </div>
+
+    <!-- Inspection Drawer -->
+    <aside id="drawer">
+      <div class="drawer-header">
+        <div>
+          <span id="drawer-group" class="node-type-tag">CATEGORY</span>
+          <h2 id="drawer-title" class="node-title">Node Title</h2>
+          <div id="drawer-tags" class="node-tags"></div>
+        </div>
+        <button class="close-btn" onclick="closeDrawer()">&times;</button>
+      </div>
+
+      <div id="drawer-image-container"></div>
+
+      <div>
+        <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Detalles de la Nota</h4>
+        <div id="drawer-content" class="content-box"></div>
+      </div>
+
+      <div id="drawer-links-section">
+        <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Conexiones Sinápticas</h4>
+        <div id="drawer-wikilinks" class="wikilinks-list"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    let graphData = { nodes: [], edges: [] };
+    let graphInstance = null;
+    let autoRotate = true;
+
+    let linkBrightness = parseFloat(localStorage.getItem('okf_link_brightness') || '1.0');
+    let orbitalSpeedMultiplier = parseFloat(localStorage.getItem('okf_orbital_speed') || '1.0');
+
+    function onOrbitalSpeedChange(val) {
+      orbitalSpeedMultiplier = parseFloat(val);
+      const textEl = document.getElementById('speed-val-text');
+      if (textEl) {
+        textEl.innerText = orbitalSpeedMultiplier === 0 ? '0.0x' : orbitalSpeedMultiplier.toFixed(1) + 'x';
+      }
+      localStorage.setItem('okf_orbital_speed', val);
+      if (graphInstance) {
+        graphInstance.linkDirectionalParticleSpeed(link => (link.isStructural ? 0.0025 : 0.005) * orbitalSpeedMultiplier);
+      }
+    }
+
+    function onLinkBrightnessChange(val) {
+      linkBrightness = parseFloat(val);
+      const textEl = document.getElementById('brightness-val-text');
+      if (textEl) {
+        textEl.innerText = Math.round(linkBrightness * 100) + '%';
+      }
+      localStorage.setItem('okf_link_brightness', val);
+
+      if (graphInstance) {
+        graphInstance.linkColor(graphInstance.linkColor());
+      }
+
+      if (window.__clusterOrbitGroups) {
+        Object.values(window.__clusterOrbitGroups).forEach(group => {
+          group.traverse(child => {
+            if (child.isLine && child.material) {
+              child.material.opacity = Math.max(0.04, Math.min(0.85, 0.22 * linkBrightness));
+              child.material.needsUpdate = true;
+            }
+          });
+        });
+      }
+    }
+
+    let currentMode = 'spherical'; // 'spherical' | 'galaxy'
+    let currentSphereRadius = 240;
+    const SPHERE_RADIUS = 270;
+
+    // Centros de los 5 Sistemas Solares en el espacio 3D
+    const GALAXY_CLUSTERS = {
+      contacts: { x: 0, y: 140, z: 0 },
+      events: { x: 140, y: -25, z: 75 },
+      emails: { x: -140, y: -25, z: 75 },
+      photos: { x: 0, y: -40, z: -140 },
+      learnings: { x: 0, y: -130, z: 35 },
+      contact: { x: 0, y: 140, z: 0 },
+      event: { x: 140, y: -25, z: 75 },
+      email: { x: -140, y: -25, z: 75 },
+      photo: { x: 0, y: -40, z: -140 },
+      learning: { x: 0, y: -130, z: 35 }
+    };
+
+    const SOLAR_ORBIT_RADII = [26, 38, 50, 62, 74, 86];
+
+    function setupGalaxyParameters(nodes) {
+      if (!nodes || !nodes.length) return;
+      const roots = nodes.filter(n => n.isRoot);
+
+      roots.forEach((rn, idx) => {
+        const anchor = GALAXY_CLUSTERS[rn.group] || {
+          x: Math.cos(idx * 1.25) * 120,
+          y: Math.sin(idx * 1.25) * 60,
+          z: Math.sin(idx * 2.1) * 120
+        };
+        rn.starTargetX = anchor.x;
+        rn.starTargetY = anchor.y;
+        rn.starTargetZ = anchor.z;
+      });
+
+      const groupChildren = {};
+      nodes.filter(n => !n.isRoot).forEach(n => {
+        const g = n.group || 'otros';
+        if (!groupChildren[g]) groupChildren[g] = [];
+        groupChildren[g].push(n);
+      });
+
+      // Ángulos 3D de esfera armilar para los anillos (distribución verdaderamente esférica)
+      const RING_ANGLES = [
+        { rx: 0.08, rz: 0.05 },
+        { rx: 0.45, rz: -0.32 },
+        { rx: -0.42, rz: 0.48 },
+        { rx: 0.72, rz: 0.28 },
+        { rx: -0.62, rz: -0.44 },
+        { rx: 0.30, rz: 0.78 }
+      ];
+
+      // Distribuir planetas sobre los anillos orbitales concéntricos 3D de su Sol
+      Object.entries(groupChildren).forEach(([grp, children]) => {
+        const total = children.length;
+        children.forEach((child, i) => {
+          const ringIdx = i % SOLAR_ORBIT_RADII.length;
+          const r = SOLAR_ORBIT_RADII[ringIdx];
+          const angleCfg = RING_ANGLES[ringIdx] || { rx: 0, rz: 0 };
+          // Ángulo inicial escalonado para que nunca se alineen en línea recta
+          const baseAngle = (i / Math.max(total, 1)) * Math.PI * 2 + (ringIdx * 1.35) + (i * 0.4);
+
+          child.solarOrbit = {
+            radius: r,
+            rx: angleCfg.rx,
+            rz: angleCfg.rz,
+            currentAngle: baseAngle,
+            orbitSpeed: 0.012 / Math.sqrt(r / 26) // Rotación continua Kepleriana fluida y perceptible
+          };
+        });
+      });
+    }
+
+    function switchVisualizationMode(mode, force = false) {
+      if (currentMode === mode && !force) return;
+      currentMode = mode;
+      localStorage.setItem('okf_viz_mode', mode);
+      window.location.hash = mode;
+
+      const sphereBtn = document.getElementById('mode-spherical-btn');
+      const galaxyBtn = document.getElementById('mode-galaxy-btn');
+      if (sphereBtn) sphereBtn.classList.toggle('active', mode === 'spherical');
+      if (galaxyBtn) galaxyBtn.classList.toggle('active', mode === 'galaxy');
+
+      const nodes = (graphInstance && graphInstance.graphData()) ? graphInstance.graphData().nodes : [];
+      const goldenRatio = (1 + Math.sqrt(5)) / 2;
+
+      // Frenar instantáneamente cualquier inercia errática previa y liberar anclajes
+      nodes.forEach(n => {
+        n.vx = 0;
+        n.vy = 0;
+        n.vz = 0;
+        n.fx = undefined;
+        n.fy = undefined;
+        n.fz = undefined;
+      });
+
+      if (mode === 'galaxy') {
+        showToast('🌌 3D Galaxy Mode: Orbital stellar systems and cosmic splines');
+        setupGalaxyParameters(nodes);
+
+        const rootsMap = new Map();
+        nodes.filter(n => n.isRoot).forEach(rn => {
+          rootsMap.set(rn.group, rn);
+          rootsMap.set(rn.group + 's', rn);
+          if (rn.group && rn.group.endsWith('s')) rootsMap.set(rn.group.slice(0, -1), rn);
+          rn.x = rn.starTargetX || 0;
+          rn.y = rn.starTargetY || 0;
+          rn.z = rn.starTargetZ || 0;
+          rn.vx = 0; rn.vy = 0; rn.vz = 0;
+        });
+
+        // Posicionar cada planeta en su órbita concéntrica correspondiente alrededor de su Sol
+        nodes.filter(n => !n.isRoot).forEach(child => {
+          const star = rootsMap.get(child.group) || rootsMap.get(child.group + 's') || (child.group && child.group.endsWith('s') && rootsMap.get(child.group.slice(0, -1)));
+          if (star && child.solarOrbit) {
+            const ang = child.solarOrbit.currentAngle;
+            const r = child.solarOrbit.radius;
+            const lx0 = Math.cos(ang) * r;
+            const lz0 = Math.sin(ang) * r;
+            const rx = child.solarOrbit.rx || 0;
+            const rz = child.solarOrbit.rz || 0;
+            const y1 = -lz0 * Math.sin(rx);
+            const z1 = lz0 * Math.cos(rx);
+            const lx = lx0 * Math.cos(rz) - y1 * Math.sin(rz);
+            const ly = lx0 * Math.sin(rz) + y1 * Math.cos(rz);
+            const lz = z1;
+            child.x = star.x + lx;
+            child.y = star.y + ly;
+            child.z = star.z + lz;
+            child.vx = 0; child.vy = 0; child.vz = 0;
+          }
+        });
+
+        if (window.__galaxyOrbitsMasterGroup) {
+          window.__galaxyOrbitsMasterGroup.visible = true;
+        }
+
+        if (graphInstance && graphInstance.d3Force('charge')) {
+          graphInstance.d3Force('charge').strength(0);
+        }
+        if (graphInstance && graphInstance.d3Force('link')) {
+          graphInstance.d3Force('link').strength(0);
+        }
+      } else {
+        showToast('🌐 3D Spherical Cortex Mode: Neural cortical surface dynamics');
+
+        if (window.__galaxyOrbitsMasterGroup) {
+          window.__galaxyOrbitsMasterGroup.visible = false;
+        }
+
+        // Restauración limpia e inmediata sobre la corteza esférica de Fibonacci
+        const roots = nodes.filter(n => n.isRoot);
+        const nonRoots = nodes.filter(n => !n.isRoot);
+
+        roots.forEach((rn, idx) => {
+          const angle = (idx / Math.max(roots.length, 1)) * 2 * Math.PI;
+          rn.x = currentSphereRadius * Math.cos(angle);
+          rn.y = (idx % 2 === 0 ? 30 : -30);
+          rn.z = currentSphereRadius * Math.sin(angle);
+          rn.vx = 0; rn.vy = 0; rn.vz = 0;
+        });
+
+        nonRoots.forEach((node, i) => {
+          const theta = 2 * Math.PI * i / goldenRatio;
+          const phi = Math.acos(1 - 2 * (i + 0.5) / Math.max(nonRoots.length, 1));
+          node.x = currentSphereRadius * Math.sin(phi) * Math.cos(theta);
+          node.y = currentSphereRadius * Math.cos(phi);
+          node.z = currentSphereRadius * Math.sin(phi) * Math.sin(theta);
+          node.vx = 0; node.vy = 0; node.vz = 0;
+        });
+
+        if (graphInstance && graphInstance.d3Force('charge')) {
+          graphInstance.d3Force('charge').strength(-90).distanceMax(380);
+        }
+        if (graphInstance && graphInstance.d3Force('link')) {
+          graphInstance.d3Force('link')
+            .distance(l => l.isStructural ? 70 : 120)
+            .strength(0.04);
+        }
+      }
+
+      if (graphInstance) {
+        if (mode === 'galaxy') {
+          graphInstance.d3AlphaDecay(0);
+          graphInstance.d3VelocityDecay(0.16);
+        } else {
+          graphInstance.d3AlphaDecay(0.02);
+          graphInstance.d3VelocityDecay(0.35);
+        }
+
+        // Re-evaluar curvas de enlaces dinámicamente según el modo seleccionado
+        graphInstance.linkCurvature(graphInstance.linkCurvature());
+        graphInstance.linkCurveRotation(graphInstance.linkCurveRotation());
+        graphInstance.linkColor(graphInstance.linkColor());
+
+        try {
+          graphInstance.d3ReheatSimulation();
+        } catch (e) {
+          console.warn('Reheat simulation:', e);
+        }
+      }
+    }
+
+    // Cache static radial glow textures once to ensure high performance
+    function buildGlowTexture(colorHex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gradient.addColorStop(0, '#ffffff');
+      gradient.addColorStop(0.2, colorHex);
+      gradient.addColorStop(0.55, colorHex);
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 128, 128);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    const GLOW_TEXTURES = {};
+
+    function getGlowTexture(colorHex) {
+      if (!GLOW_TEXTURES[colorHex]) {
+        GLOW_TEXTURES[colorHex] = buildGlowTexture(colorHex);
+      }
+      return GLOW_TEXTURES[colorHex];
+    }
+
+    
+    function createRootLabelSprite(text, colorHex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 220;
+      canvas.height = 42;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = 'rgba(6, 10, 20, 0.82)';
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(4, 4, 212, 34, 7);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = 'Bold 13px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillStyle = '#f8fafc';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = colorHex;
+      ctx.shadowBlur = 5;
+      ctx.fillText(text, 110, 21);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.92 });
+      const sprite = new THREE.Sprite(spriteMaterial);
+      sprite.scale.set(11.5, 2.2, 1);
+      return sprite;
+    }
+
+    function createLabelSprite(text, colorHex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 100;
+      const ctx = canvas.getContext('2d');
+
+      // High-DPI Crisp Glass Pill Badge
+      ctx.fillStyle = 'rgba(6, 10, 20, 0.90)';
+      ctx.strokeStyle = colorHex || 'rgba(56, 189, 248, 0.65)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(6, 6, 500, 88, 18);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 8;
+      
+      const cleanText = text.replace(/^\[\[|\]\]$/g, '').trim();
+      const display = cleanText.length > 32 ? cleanText.substring(0, 30) + '…' : cleanText;
+      ctx.fillText(display, 256, 50);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+
+      const spriteMaterial = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(spriteMaterial);
+      sprite.scale.set(18, 3.5, 1);
+      sprite.visible = false;
+      return sprite;
+    }
+
+    
+    function toggleTaxonomyMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById("taxonomy-menu");
+      if (menu) menu.classList.toggle("open");
+    }
+
+    window.addEventListener("click", (e) => {
+      if (!e.target.closest(".taxonomy-dropdown-wrapper")) {
+        const menu = document.getElementById("taxonomy-menu");
+        if (menu) menu.classList.remove("open");
+      }
+    });
+
+    
+    // Active Layers State (all enabled by default)
+    let activeLayers = {
+      contact: true,
+      event: true,
+      email: true,
+      photo: true,
+      learning: true
+    };
+
+    function showToast(msg, duration = 3500) {
+      const toast = document.getElementById("brain-toast");
+      if (!toast) return;
+      toast.innerText = msg;
+      toast.style.display = "block";
+      toast.style.opacity = "1";
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.style.display = "none", 300);
+      }, duration);
+    }
+
+    async function triggerForcedLearning() {
+      const btn = document.getElementById("learn-btn");
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = "<span>⏳</span> <span>Re-indexing...</span>";
+      showToast("🧠 Re-indexing vault and synthesizing graph...");
+
+      try {
+        const res = await fetch("/consolidate-daily-memory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: new Date().toISOString().split("T")[0] })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast("✅ Aprendizaje consolidado: +" + (json.result.eventsSettled || 0) + " eventos, +" + (json.result.contactsUpdated || 0) + " contactos");
+          await initGraph();
+        } else {
+          showToast("⚠️ Fallo en consolidación: " + (json.error || "Error desconocido"));
+        }
+      } catch (e) {
+        showToast("⚠️ Error de conexión con el servidor");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+      }
+    }
+
+    function toggleLayer(group, e) {
+      if (e) e.stopPropagation();
+      activeLayers[group] = !activeLayers[group];
+      updateFilteredGraph();
+      renderTaxonomyMenu(graphData);
+    }
+
+    function setAllLayers(state) {
+      Object.keys(activeLayers).forEach(k => activeLayers[k] = state);
+      updateFilteredGraph();
+      renderTaxonomyMenu(graphData);
+    }
+
+    // Dynamic Sphere Radius calculation based on visible node density
+    function computeSphereRadius(count) {
+      return Math.max(160, Math.min(290, 135 + Math.sqrt(Math.max(count, 6)) * 12.0));
+    }
+
+    function updateFilteredGraph() {
+      if (!graphInstance || !graphData.nodes) return;
+
+      const filteredNodes = graphData.nodes.filter(n => {
+        const g = n.group || "otros";
+        return activeLayers[g] !== false;
+      });
+
+      const activeIds = new Set(filteredNodes.map(n => n.id));
+      const filteredLinks = (graphData.edges || [])
+        .filter(e => activeIds.has(e.source) && activeIds.has(e.target))
+        .map(e => ({
+          source: e.source,
+          target: e.target,
+          label: e.label,
+          isStructural: !!e.isStructural
+        }));
+
+      // Update sphere shell radius dynamically
+      currentSphereRadius = computeSphereRadius(filteredNodes.length);
+      if (currentMode === 'galaxy') {
+        setupGalaxyParameters(filteredNodes);
+      }
+
+      graphInstance.graphData({ nodes: filteredNodes, links: filteredLinks });
+
+      // Update counters
+      document.getElementById("stat-total-nodes").innerText = filteredNodes.length;
+      document.getElementById("stat-total-edges").innerText = filteredLinks.length;
+    }
+
+    function renderTaxonomyMenu(data) {
+      const groupCounts = {};
+      data.nodes.forEach(n => {
+        const g = n.group || "otros";
+        if (activeLayers[g] === undefined) activeLayers[g] = true;
+        groupCounts[g] = (groupCounts[g] || 0) + 1;
+      });
+
+      const groupLabels = {
+        contact: "Contactos VIP",
+        event: "Eventos y Agenda",
+        email: "Correos Indexados",
+        photo: "Looks y Estilismo",
+        learning: "OKF Aprendizajes",
+        project: "Proyectos Estratégicos",
+        venue: "Sedes y Espacios",
+        entity: "Entidades",
+        otros: "Otras Entidades"
+      };
+
+      const groupColors = {
+        contact: "#fbbf24",
+        event: "#38bdf8",
+        email: "#c084fc",
+        photo: "#f43f5e",
+        learning: "#22c55e",
+        project: "#f97316",
+        venue: "#06b6d4",
+        entity: "#eab308",
+        otros: "#94a3b8"
+      };
+
+      const menu = document.getElementById("taxonomy-menu");
+      const countBadge = document.getElementById("tax-count");
+      const groups = Object.keys(groupCounts);
+      const activeCount = groups.filter(g => activeLayers[g]).length;
+      countBadge.innerText = activeCount + "/" + groups.length;
+
+      let menuHtml = '<div style="display:flex; justify-content:space-between; padding:4px 14px; font-size:0.7rem; color:var(--text-muted);">' +
+        '<span style="cursor:pointer; text-decoration:underline;" onclick="setAllLayers(true)">Activar todas</span>' +
+        '<span style="cursor:pointer; text-decoration:underline;" onclick="setAllLayers(false)">Ocultar todas</span>' +
+      '</div>' +
+      '<div class="tax-divider"></div>';
+
+      groups.forEach(g => {
+        const color = groupColors[g] || "#94a3b8";
+        const label = groupLabels[g] || (g.charAt(0).toUpperCase() + g.slice(1));
+        const count = groupCounts[g];
+        const isChecked = activeLayers[g] !== false;
+
+        menuHtml += '<div class="tax-item" onclick="toggleLayer(\'' + g + '\', event)">' +
+          '<span class="dot" style="background: ' + color + '; box-shadow: 0 0 8px ' + color + '"></span>' +
+          '<span class="tax-name">' + label + '</span>' +
+          '<span class="tax-num">' + count + '</span>' +
+          '<span class="layer-check ' + (isChecked ? 'checked' : '') + '">' + (isChecked ? '✓' : '') + '</span>' +
+        '</div>';
+      });
+
+      menu.innerHTML = menuHtml;
+    }
+
+    async function initGraph() {
+      try {
+        console.log('Fetching graph data...');
+        const res = await fetch('/api/okf-graph');
+        const data = await res.json();
+        graphData = data;
+        console.log('Graph data received:', data.stats);
+
+        // Update stats
+        document.getElementById('stat-total-nodes').innerText = data.stats.totalNodes || data.nodes.length;
+        document.getElementById('stat-total-edges').innerText = data.stats.totalEdges || data.edges.length;
+        renderTaxonomyMenu(data);
+
+        const colorMap = {
+          contact: '#fbbf24',
+          contacts: '#fbbf24',
+          event: '#38bdf8',
+          events: '#38bdf8',
+          email: '#c084fc',
+          emails: '#c084fc',
+          photo: '#f43f5e',
+          photos: '#f43f5e',
+          learning: '#10b981',
+          learnings: '#10b981',
+          concept: '#38bdf8',
+          concepts: '#38bdf8',
+          project: '#fbbf24',
+          projects: '#fbbf24',
+          architecture: '#c084fc',
+          research: '#f43f5e',
+          tool: '#10b981',
+          tools: '#10b981'
+        };
+
+        // Calcular grado / peso y potencia para cada nodo
+        const nodeDegreeMap = new Map();
+        (data.edges || []).forEach(e => {
+          const s = (e.source && e.source.id) || e.source;
+          const t = (e.target && e.target.id) || e.target;
+          nodeDegreeMap.set(s, (nodeDegreeMap.get(s) || 0) + 1);
+          nodeDegreeMap.set(t, (nodeDegreeMap.get(t) || 0) + 1);
+        });
+
+        const formattedLinks = (data.edges || []).map(e => ({
+          source: e.source,
+          target: e.target,
+          label: e.label,
+          isStructural: !!e.isStructural
+        }));
+
+        const elem = document.getElementById('3d-graph');
+        graphInstance = ForceGraph3D()(elem)
+          .graphData({ nodes: data.nodes, links: formattedLinks })
+          .backgroundColor('#000000')
+          .nodeId('id')
+          .nodeColor(node => {
+            const baseColor = colorMap[node.group] || node.color || '#38bdf8';
+            if (!searchActive) return baseColor;
+            if (node.__searchMatch) return '#ffffff'; // Destello blanco incandescente para coincidencias
+            if (node.__searchConnected) return baseColor; // Conexiones en su color normal
+            return 'rgba(30, 41, 59, 0.18)'; // Atenuado en penumbra para nodos no relacionados
+          })
+          .nodeThreeObject(node => {
+            const group = new THREE.Group();
+            const nodeColor = colorMap[node.group] || node.color || '#38bdf8';
+            const isRoot = !!node.isRoot;
+            const degree = nodeDegreeMap.get(node.id) || 1;
+
+            if (isRoot) {
+              // ==============================================================
+              // 🌟 SOL LUMINOSO Y RADIANTE (Efecto Incandescente y Translúcido)
+              // ==============================================================
+              // 1. Núcleo Blanco Incandescente (Fusión nuclear interior brillante)
+              const innerCoreGeo = new THREE.SphereGeometry(1.6, 24, 18);
+              const innerCoreMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.95
+              });
+              const innerCoreMesh = new THREE.Mesh(innerCoreGeo, innerCoreMat);
+              group.add(innerCoreMesh);
+
+              // 2. Manto de Plasma Translúcido con Color de Clúster (Atmósfera estelar aditiva)
+              const plasmaGeo = new THREE.SphereGeometry(3.2, 32, 24);
+              const plasmaMat = new THREE.MeshBasicMaterial({
+                color: nodeColor,
+                transparent: true,
+                opacity: 0.65,
+                blending: THREE.AdditiveBlending
+              });
+              const plasmaMesh = new THREE.Mesh(plasmaGeo, plasmaMat);
+              group.add(plasmaMesh);
+
+              // 3. Corona Radiante Focalizada (Halo cercano)
+              const glowTex = getGlowTexture(nodeColor);
+              const coronaMat = new THREE.SpriteMaterial({
+                map: glowTex,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                opacity: 0.88
+              });
+              const coronaSprite = new THREE.Sprite(coronaMat);
+              coronaSprite.scale.set(13, 13, 1);
+              group.add(coronaSprite);
+
+              // 4. Halo Exterior de Dispersión Lumínica (Suave resplandor cósmico)
+              const flareMat = new THREE.SpriteMaterial({
+                map: glowTex,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                opacity: 0.38
+              });
+              const flareSprite = new THREE.Sprite(flareMat);
+              flareSprite.scale.set(24, 24, 1);
+              node.__stellarFlare = flareSprite;
+              group.add(flareSprite);
+
+              // 5. Etiqueta del Sol
+              const rootSprite = createRootLabelSprite(node.label, nodeColor);
+              rootSprite.position.set(0, 5.2, 0);
+              node.__labelSprite = rootSprite;
+              group.add(rootSprite);
+
+            } else {
+              // ==============================================================
+              // 🪐 SUBNODOS PLANETARIOS (Delicados y nítidos)
+              // ==============================================================
+              const powerLevel = Math.min(10, degree + Math.round((node.size || 20) / 10));
+              const baseSize = Math.max(0.7, Math.min(1.35, 0.65 + Math.log2(powerLevel + 1) * 0.18));
+
+              const sphereGeo = new THREE.SphereGeometry(baseSize, 24, 18);
+              const sphereMat = new THREE.MeshBasicMaterial({ color: nodeColor });
+              const coreMesh = new THREE.Mesh(sphereGeo, sphereMat);
+              group.add(coreMesh);
+
+              // 🎯 HIT AREA GENEROSA INVISIBLE: Multiplica el área de click por 100 para que sea comodísimo clickar
+              const hitGeo = new THREE.SphereGeometry(Math.max(6.5, baseSize * 4.5), 12, 10);
+              const hitMat = new THREE.MeshBasicMaterial({
+                transparent: true,
+                opacity: 0.0001,
+                depthWrite: false
+              });
+              const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+              group.add(hitMesh);
+
+              const glowTex = getGlowTexture(nodeColor);
+              const glowMat = new THREE.SpriteMaterial({
+                map: glowTex,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                opacity: 0.25 + Math.min(powerLevel, 5) * 0.02
+              });
+              const glowSprite = new THREE.Sprite(glowMat);
+              const glowScale = baseSize * 1.6;
+              glowSprite.scale.set(glowScale, glowScale, 1);
+              node.__glowSprite = glowSprite;
+              group.add(glowSprite);
+
+              const labelSprite = createLabelSprite(node.label, nodeColor);
+              labelSprite.position.set(0, baseSize + 2.8, 0);
+              node.__labelSprite = labelSprite;
+              group.add(labelSprite);
+            }
+
+            return group;
+          })
+          // SPLINES CURVILÍNEOS 3D: Arcos espaciales continuos, suaves y majestuosos
+          .linkCurvature(link => {
+            if (currentMode === 'galaxy') {
+              return link.isStructural ? 0.35 : 0.55;
+            }
+            return link.isStructural ? 0.28 : 0.48;
+          })
+          .linkCurveRotation(link => {
+            const sId = (link.source && (link.source.id || link.source)) || '';
+            const tId = (link.target && (link.target.id || link.target)) || '';
+            let hash = 0;
+            for (let i = 0; i < sId.length; i++) hash = (hash * 31 + sId.charCodeAt(i)) & 0xffffffff;
+            for (let i = 0; i < tId.length; i++) hash = (hash * 31 + tId.charCodeAt(i)) & 0xffffffff;
+            return ((Math.abs(hash) % 1000) / 1000) * Math.PI * 2;
+          })
+          .linkResolution(6)
+          // Enlaces Duros (Troncales Padre) vs Enlaces de Relación (Wikilinks claramente visibles)
+          .linkColor(link => {
+            if (searchActive) {
+              const sId = (link.source && link.source.id) || link.source;
+              const tId = (link.target && link.target.id) || link.target;
+              const isRelevant = matchingNodeIds.has(sId) && matchingNodeIds.has(tId);
+              if (!isRelevant) return 'rgba(255, 255, 255, 0.02)';
+              return '#38bdf8';
+            }
+            const alpha = link.isStructural ? Math.min(0.65, 0.38 * linkBrightness) : Math.min(0.70, 0.45 * linkBrightness);
+            return link.isStructural ? ('rgba(255, 255, 255, ' + alpha.toFixed(3) + ')') : ('rgba(56, 189, 248, ' + alpha.toFixed(3) + ')');
+          })
+          .linkWidth(link => link.isStructural ? 1.2 : 0.85)
+          .linkDirectionalParticles(link => {
+            if (orbitalSpeedMultiplier === 0) return 0;
+            if (link.isStructural) return 1;
+            if (focusedNodeId && (link.source.id === focusedNodeId || link.target.id === focusedNodeId)) return 1;
+            return 0;
+          })
+          .linkDirectionalParticleSpeed(link => (link.isStructural ? 0.0025 : 0.005) * orbitalSpeedMultiplier)
+          .linkDirectionalParticleWidth(link => link.isStructural ? 2.0 : 1.3)
+          .linkDirectionalParticleColor(link => link.isStructural ? '#ffffff' : '#38bdf8')
+          .onNodeClick(node => focusNode(node))
+          .onNodeHover((node, prevNode) => {
+            const container = document.getElementById('3d-graph');
+            if (container) {
+              container.style.cursor = node ? 'pointer' : 'grab';
+            }
+
+            // Destacar nodo sobrevolado y mostrar su nombre inmediatamente
+            if (node && node.__labelSprite) {
+              node.__labelSprite.visible = true;
+              node.__labelSprite.material.opacity = 1.0;
+              node.__labelSprite.scale.set(22, 4.3, 1);
+              if (node.__glowSprite) node.__glowSprite.scale.set(5.5, 5.5, 1);
+            }
+            if (prevNode && prevNode !== node && prevNode.__labelSprite) {
+              prevNode.__labelSprite.scale.set(18, 3.5, 1);
+            }
+          })
+          .onNodeDrag((node, translate) => {
+            isNodeBeingDragged = true;
+            if (!node) return;
+            if (node.isRoot) {
+              node.__isDraggingRoot = true;
+              autoRotate = false;
+              const pill = document.getElementById('auto-rotate-pill');
+              if (pill) pill.classList.remove('active');
+            }
+          })
+          .onNodeDragEnd(node => {
+            setTimeout(() => { isNodeBeingDragged = false; }, 50);
+            if (node && node.isRoot) {
+              node.__isDraggingRoot = false;
+              // Release fixed pin so it elastically returns to the spherical shell
+              setTimeout(() => {
+                node.fx = undefined;
+                node.fy = undefined;
+                node.fz = undefined;
+              }, 120);
+            }
+          });
+
+        // 1. Initial 3D Spherical Distribution (Fibonacci Sphere Algorithm)
+        const totalN = data.nodes.length;
+        const goldenRatio = (1 + Math.sqrt(5)) / 2;
+        let currentSphereRadius = computeSphereRadius(data.nodes.length);
+        const SPHERE_SHELL_R = currentSphereRadius;
+
+        // Place root nodes evenly around the equator
+        const rootNodesList = data.nodes.filter(n => n.isRoot);
+        rootNodesList.forEach((rn, idx) => {
+          const angle = (idx / rootNodesList.length) * 2 * Math.PI;
+          rn.x = SPHERE_SHELL_R * Math.cos(angle);
+          rn.y = (idx % 2 === 0 ? 30 : -30);
+          rn.z = SPHERE_SHELL_R * Math.sin(angle);
+        });
+
+        // Place all other nodes along the Fibonacci spherical shell
+        const nonRootNodes = data.nodes.filter(n => !n.isRoot);
+        nonRootNodes.forEach((node, i) => {
+          const theta = 2 * Math.PI * i / goldenRatio;
+          const phi = Math.acos(1 - 2 * (i + 0.5) / nonRootNodes.length);
+          node.x = SPHERE_SHELL_R * Math.sin(phi) * Math.cos(theta);
+          node.y = SPHERE_SHELL_R * Math.cos(phi);
+          node.z = SPHERE_SHELL_R * Math.sin(phi) * Math.sin(theta);
+        });
+
+        // Pre-compute galaxy coordinates and orbital parameters
+        setupGalaxyParameters(data.nodes);
+        window.__cachedAllNodes = data.nodes;
+        cachedRootNodes = data.nodes.filter(n => n.isRoot);
+
+        // 2. Dual Physics Engine: 3D Spherical Cortex vs 3D Galaxy (Stars & Planets)
+        graphInstance.d3Force('brain_physics', () => {
+          const nodes = graphInstance.graphData().nodes;
+
+          // Identify dragged roots and collect all roots
+          const draggedRootsMap = new Map();
+          const allRootsMap = new Map();
+          for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            if (n.isRoot) {
+              allRootsMap.set(n.group, n);
+              allRootsMap.set(n.group + 's', n);
+              if (n.group && n.group.endsWith('s')) allRootsMap.set(n.group.slice(0, -1), n);
+              if (n.__isDraggingRoot) {
+                draggedRootsMap.set(n.group, n);
+              }
+            }
+          }
+
+          if (currentMode === 'galaxy') {
+            // ==========================================
+            // 🌌 3D GALAXY: SISTEMAS SOLARES (SOL, ÓRBITAS Y PLANETAS)
+            // ==========================================
+            for (let i = 0; i < nodes.length; i++) {
+              const n = nodes[i];
+
+              if (n.isRoot) {
+                // ⭐ SOL / ESTRELLA CENTRAL (Resplandor pulsante vivo)
+                if (n.__stellarFlare) {
+                  const pulseSpeed = Math.max(0.05, orbitalSpeedMultiplier);
+                  const pulse = 1.0 + Math.sin(Date.now() * 0.0022 * pulseSpeed + i * 1.4) * 0.09;
+                  n.__stellarFlare.scale.set(24 * pulse, 24 * pulse, 1);
+                }
+                if (!n.__isDraggingRoot) {
+                  const center = GALAXY_CLUSTERS[n.group] || { x: 0, y: 0, z: 0 };
+                  n.x += (center.x - n.x) * 0.12;
+                  n.y += (center.y - n.y) * 0.12;
+                  n.z += (center.z - n.z) * 0.12;
+                  n.vx = 0; n.vy = 0; n.vz = 0;
+                }
+              } else {
+                // 🪐 PLANETA EN ÓRBITA KEPLERIANA PURA (Cero temblores, rotación perpetua fluida)
+                const star = allRootsMap.get(n.group);
+                if (!star) continue;
+
+                if (!n.solarOrbit) {
+                  // Generar órbita por defecto si no existía
+                  const r = SOLAR_ORBIT_RADII[(i % SOLAR_ORBIT_RADII.length)] || 40;
+                  n.solarOrbit = {
+                    radius: r,
+                    rx: 0.1,
+                    rz: 0.1,
+                    currentAngle: (i * 1.2),
+                    orbitSpeed: 0.008 / Math.sqrt(r / 26)
+                  };
+                }
+
+                // Avance orbital armónico continuo y constante
+                n.solarOrbit.currentAngle += (n.solarOrbit.orbitSpeed || 0.006) * orbitalSpeedMultiplier;
+                const ang = n.solarOrbit.currentAngle;
+                const r = n.solarOrbit.radius;
+
+                const lx0 = Math.cos(ang) * r;
+                const lz0 = Math.sin(ang) * r;
+                const rx = n.solarOrbit.rx || 0;
+                const rz = n.solarOrbit.rz || 0;
+                const y1 = -lz0 * Math.sin(rx);
+                const z1 = lz0 * Math.cos(rx);
+                const lx = lx0 * Math.cos(rz) - y1 * Math.sin(rz);
+                const ly = lx0 * Math.sin(rz) + y1 * Math.cos(rz);
+                const lz = z1;
+
+                // Posición matemática exacta sobre el anillo de su Sol (inmune a interferencias de fuerzas D3)
+                n.x = star.x + lx;
+                n.y = star.y + ly;
+                n.z = star.z + lz;
+                n.vx = 0;
+                n.vy = 0;
+                n.vz = 0;
+              }
+            }
+          } else {
+            // ==========================================
+            // 🌐 3D SPHERICAL CORTEX PHYSICS (Fibonacci Shell)
+            // ==========================================
+            for (let i = 0; i < nodes.length; i++) {
+              const n = nodes[i];
+              const x = n.x || 0.001;
+              const y = n.y || 0.001;
+              const z = n.z || 0.001;
+              const d = Math.sqrt(x*x + y*y + z*z) || 1;
+
+              const isThisRootDragged = n.isRoot && n.__isDraggingRoot;
+              const isChildOfDraggedRoot = !n.isRoot && draggedRootsMap.has(n.group);
+
+              if (isChildOfDraggedRoot) {
+                // Despegue elástico siguiendo a la raíz
+                const rootNode = draggedRootsMap.get(n.group);
+                const dx = rootNode.x - n.x;
+                const dy = rootNode.y - n.y;
+                const dz = rootNode.z - n.z;
+
+                const pullStrength = 0.042;
+                n.vx = (n.vx || 0) + dx * pullStrength;
+                n.vy = (n.vy || 0) + dy * pullStrength;
+                n.vz = (n.vz || 0) + dz * pullStrength;
+
+                n.vx *= 0.92;
+                n.vy *= 0.92;
+                n.vz *= 0.92;
+              } else if (isThisRootDragged) {
+                // Raíz bajo arrastre manual
+              } else {
+                // Envoltura normal sobre la corteza esférica
+                const delta = (currentSphereRadius - d) * 0.08;
+                n.vx = (n.vx || 0) + (x / d) * delta;
+                n.vy = (n.vy || 0) + (y / d) * delta;
+                n.vz = (n.vz || 0) + (z / d) * delta;
+              }
+            }
+          }
+        });
+
+        // D3 Force Link & Charge: En modo Galaxia apagadas para 0 consumo CPU innecesario
+        const isGalaxyInitial = (currentMode === 'galaxy');
+        if (graphInstance.d3Force('charge')) {
+          graphInstance.d3Force('charge').strength(isGalaxyInitial ? 0 : -90).distanceMax(380);
+        }
+        if (graphInstance.d3Force('link')) {
+          graphInstance.d3Force('link').distance(l => l.isStructural ? 70 : 120).strength(isGalaxyInitial ? 0 : 0.04);
+        }
+
+        // Center Hologram
+        const scene = graphInstance.scene();
+        const coreCanvas = document.createElement('canvas');
+        coreCanvas.width = 512;
+        coreCanvas.height = 256;
+        const coreCtx = coreCanvas.getContext('2d');
+        coreCtx.font = 'Bold 44px -apple-system, sans-serif';
+        coreCtx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        coreCtx.textAlign = 'center';
+        coreCtx.textBaseline = 'middle';
+        coreCtx.fillText('Knowledge Vault', 256, 95);
+        coreCtx.font = '20px -apple-system, sans-serif';
+        coreCtx.fillStyle = 'rgba(56, 189, 248, 0.55)';
+        coreCtx.fillText(data.stats.totalNodes + ' Nodes • ' + data.edges.length + ' Links', 256, 145);
+
+        const coreTexture = new THREE.CanvasTexture(coreCanvas);
+        const coreSpriteMat = new THREE.SpriteMaterial({ map: coreTexture, transparent: true, opacity: 0.7 });
+        const centerSprite = new THREE.Sprite(coreSpriteMat);
+        centerSprite.scale.set(100, 50, 1);
+        scene.add(centerSprite);
+
+        // Starfield particles
+        const starsGeo = new THREE.BufferGeometry();
+        const starCount = 800;
+        const starPositions = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount*3; i++) {
+          starPositions[i] = (Math.random() - 0.5) * 2600;
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starsMat = new THREE.PointsMaterial({ color: 0x475569, size: 1.2, transparent: true, opacity: 0.35 });
+        scene.add(new THREE.Points(starsGeo, starsMat));
+
+        // Anillos orbitales de alambre 3D (Armillary Wireframe Spheres per Solar System)
+        const galaxyOrbitsMasterGroup = new THREE.Group();
+        window.__galaxyOrbitsMasterGroup = galaxyOrbitsMasterGroup;
+        const clusterOrbitGroups = {};
+        window.__clusterOrbitGroups = clusterOrbitGroups;
+
+        const roots = data.nodes.filter(n => n.isRoot);
+        const rootCount = Math.max(roots.length, 1);
+
+        roots.forEach(rn => {
+          const grpHolder = new THREE.Group();
+          let hexColor = 0x38bdf8;
+          if (rn.color) {
+            try { hexColor = parseInt(rn.color.replace('#', '0x'), 16); } catch(e){}
+          }
+
+          SOLAR_ORBIT_RADII.forEach((r, idx) => {
+            const pts = [];
+            const segments = 64;
+            for (let s = 0; s <= segments; s++) {
+              const angle = (s / segments) * Math.PI * 2;
+              pts.push(new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r));
+            }
+            const ringGeo = new THREE.BufferGeometry().setFromPoints(pts);
+            const ringMat = new THREE.LineBasicMaterial({
+              color: hexColor,
+              transparent: true,
+              opacity: 0.22,
+              blending: THREE.AdditiveBlending
+            });
+            const ringLine = new THREE.LineLoop(ringGeo, ringMat);
+            const RING_ANGLES = [
+              { rx: 0.08, rz: 0.05 },
+              { rx: 0.45, rz: -0.32 },
+              { rx: -0.42, rz: 0.48 },
+              { rx: 0.72, rz: 0.28 },
+              { rx: -0.62, rz: -0.44 },
+              { rx: 0.30, rz: 0.78 }
+            ];
+            const cfg = RING_ANGLES[idx] || { rx: 0, rz: 0 };
+            ringLine.rotation.x = cfg.rx;
+            ringLine.rotation.z = cfg.rz;
+            grpHolder.add(ringLine);
+          });
+
+          clusterOrbitGroups[rn.group] = grpHolder;
+          clusterOrbitGroups[rn.id] = grpHolder;
+          galaxyOrbitsMasterGroup.add(grpHolder);
+        });
+
+        galaxyOrbitsMasterGroup.visible = (currentMode === 'galaxy');
+        scene.add(galaxyOrbitsMasterGroup);
+
+        const renderer = graphInstance.renderer();
+        if (renderer) {
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        }
+
+        // Auto-rotation & Pure Trackball Controls
+        if (currentMode === "galaxy") { graphInstance.d3AlphaDecay(0); graphInstance.d3VelocityDecay(0.16); }
+        const controls = graphInstance.controls();
+        if (controls) {
+          controls.autoRotate = false;
+          controls.enableRotate = false; // Desactivado para que no pelee con el control gestual de esfera 3D
+          controls.enablePan = false;
+          controls.enableZoom = false;   // Manejado con suavidad cinemática por nuestro wheel listener
+        }
+
+        // Initial camera framing
+        graphInstance.cameraPosition({ z: 620 });
+
+        // Setup Drag Interaction on the Glass Mini-Sphere Orb
+        setupGlassOrbDrag();
+
+      } catch (err) {
+        console.error('Failed to init 3D graph:', err);
+      }
+    }
+
+    // Smooth Cinematic Camera Rig with Physical Inertia & Volumetric Fly-To Targets
+    let targetRadius = 660;
+    let currentRadius = 660;
+    let targetTheta = 0;
+    let currentTheta = 0;
+    let targetPhi = Math.PI * 0.5;
+    let currentPhi = Math.PI * 0.5;
+
+    const targetLookAt = new THREE.Vector3(0, 0, 0);
+    const currentLookAt = new THREE.Vector3(0, 0, 0);
+    let focusedNodeId = null;
+
+    function applyCameraPosition() {
+      if (!graphInstance) return;
+      const cam = graphInstance.camera();
+      if (!cam) return;
+
+      // Suave vuelo cinematográfico hacia el objetivo (nodo enfocado o centro)
+      currentLookAt.lerp(targetLookAt, 0.075);
+
+      const cx = currentLookAt.x + currentRadius * Math.sin(currentPhi) * Math.sin(currentTheta);
+      const cy = currentLookAt.y + currentRadius * Math.cos(currentPhi);
+      const cz = currentLookAt.z + currentRadius * Math.sin(currentPhi) * Math.cos(currentTheta);
+
+      cam.position.set(cx, cy, cz);
+      cam.lookAt(currentLookAt);
+
+      const controls = graphInstance.controls();
+      if (controls) {
+        controls.target.copy(currentLookAt);
+      }
+    }
+
+    // Cache for root nodes to avoid creating arrays inside 60FPS tick()
+    let cachedRootNodes = [];
+    let lodFrameCounter = 0;
+
+    // Proximity LOD: Labels fade in when zooming in / approaching any node (root or subnode)
+    // Optimizado: Distancia al cuadrado (evita Math.sqrt innecesarios) y throttled a cada 2 frames
+    function updateLabelLOD() {
+      if (!graphInstance) return;
+      lodFrameCounter++;
+      if (lodFrameCounter % 2 !== 0 && !searchActive) return;
+
+      const cam = graphInstance.camera();
+      if (!cam) return;
+      const camPos = cam.position;
+      const nodes = window.__cachedAllNodes || ((graphInstance && graphInstance.graphData && graphInstance.graphData().nodes) || (graphData && graphData.nodes) || []);
+
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const sprite = n.__labelSprite;
+        if (!sprite) continue;
+
+        if (n.isRoot) {
+          if (!sprite.visible) sprite.visible = true;
+          if (sprite.material.opacity !== 0.95) sprite.material.opacity = 0.95;
+          continue;
+        }
+
+        // Si hay búsqueda activa o es el nodo enfocado, mantener visible
+        if (n.__searchMatch || n.id === focusedNodeId) {
+          if (!sprite.visible) sprite.visible = true;
+          if (sprite.material.opacity !== 1.0) sprite.material.opacity = 1.0;
+          continue;
+        }
+        if (searchActive && !n.__searchMatch) {
+          if (sprite.visible) {
+            sprite.visible = false;
+            sprite.material.opacity = 0;
+          }
+          continue;
+        }
+
+        const dx = (n.x || 0) - camPos.x;
+        const dy = (n.y || 0) - camPos.y;
+        const dz = (n.z || 0) - camPos.z;
+        const distSq = dx * dx + dy * dy + dz * dz;
+
+        // Rango de visibilidad ampliado: 580^2 = 336400
+        if (distSq < 336400) {
+          const dist = Math.sqrt(distSq);
+          const alpha = Math.max(0, Math.min(0.95, (580 - dist) / 220));
+          sprite.material.opacity = alpha;
+          sprite.visible = alpha > 0.04;
+        } else {
+          if (sprite.visible) {
+            sprite.visible = false;
+            sprite.material.opacity = 0;
+          }
+        }
+      }
+    }
+
+    // 60 FPS Smooth Render Loop with Gentle Auto-Giro, Silky Inertia and Proximity Labels
+    function startSmoothCameraLoop() {
+      function tick() {
+        requestAnimationFrame(tick);
+        if (!graphInstance) return;
+
+        // Subtle, elegant Auto-Giro rotation (0.0012 rad/frame * multiplier)
+        if (autoRotate && orbitalSpeedMultiplier > 0) {
+          targetTheta += 0.0012 * orbitalSpeedMultiplier;
+        }
+
+        // Smooth physical interpolation (Lerp factor 0.065 for luxurious ease-in/ease-out)
+        currentTheta += (targetTheta - currentTheta) * 0.065;
+        currentPhi += (targetPhi - currentPhi) * 0.065;
+        currentRadius += (targetRadius - currentRadius) * 0.065;
+
+        applyCameraPosition();
+        updateLabelLOD();
+
+        // Actualizar posición de los anillos orbitales siguiendo a sus Soles (cero asignación de memoria en tick)
+        if (window.__galaxyOrbitsMasterGroup) {
+          window.__galaxyOrbitsMasterGroup.visible = (currentMode === 'galaxy');
+          if (currentMode === 'galaxy' && cachedRootNodes.length > 0) {
+            for (let i = 0; i < cachedRootNodes.length; i++) {
+              const rn = cachedRootNodes[i];
+              const holder = window.__clusterOrbitGroups && (window.__clusterOrbitGroups[rn.group] || window.__clusterOrbitGroups[rn.id]);
+              if (holder) {
+                holder.position.set(rn.x || 0, rn.y || 0, rn.z || 0);
+              }
+            }
+          }
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+    startSmoothCameraLoop();
+
+    
+    // Native Mousewheel and Trackpad Scroll Gestures Support
+    window.addEventListener('wheel', (e) => {
+      // Smooth exponential zoom factor based on scroll direction
+      const factor = e.deltaY > 0 ? 1.08 : 0.92;
+      targetRadius = Math.max(160, Math.min(1800, targetRadius * factor));
+    }, { passive: true });
+
+    // Unified 3D Virtual Trackball & Globe Rotation
+    // Rota la esfera exactamente en la dirección del gesto como si le pasaras la mano por encima a una bola 3D
+    function rotateSphere(yawDelta, pitchDelta) {
+      targetTheta += yawDelta;
+      targetPhi += pitchDelta;
+      // Evitar que la cámara se invierta en los polos exactos
+      targetPhi = Math.max(0.10, Math.min(Math.PI - 0.10, targetPhi));
+    }
+
+    let isNodeBeingDragged = false;
+
+    function setupGlassOrbDrag() {
+      const graphContainer = document.getElementById('3d-graph');
+      const orb = document.getElementById('glass-orb');
+      let isDragging = false;
+      let prevX = 0;
+      let prevY = 0;
+      let velX = 0;
+      let velY = 0;
+
+      function startDrag(clientX, clientY) {
+        if (isNodeBeingDragged) return;
+        isDragging = true;
+        prevX = clientX;
+        prevY = clientY;
+        velX = 0;
+        velY = 0;
+        if (graphContainer) graphContainer.classList.add('grabbing');
+      }
+
+      function updateDrag(clientX, clientY) {
+        if (!isDragging) return;
+        const dx = clientX - prevX;
+        const dy = clientY - prevY;
+        prevX = clientX;
+        prevY = clientY;
+
+        velX = dx;
+        velY = dy;
+
+        // FÍSICA DE BOLA 3D:
+        // Arrastrar hacia arriba (dy < 0) -> la esfera rueda hacia arriba (pitchDelta > 0)
+        // Arrastrar hacia abajo (dy > 0) -> la esfera rueda hacia abajo (pitchDelta < 0)
+        // Arrastrar hacia la derecha (dx > 0) -> la esfera gira a la derecha (yawDelta < 0)
+        // Arrastrar hacia la izquierda (dx < 0) -> la esfera gira a la izquierda (yawDelta > 0)
+        const sensitivity = 0.0042;
+        const yawDelta = -dx * sensitivity;
+        const pitchDelta = -dy * sensitivity;
+
+        rotateSphere(yawDelta, pitchDelta);
+      }
+
+      function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        if (graphContainer) graphContainer.classList.remove('grabbing');
+
+        // Suave inercia física de despedida
+        if (Math.abs(velX) > 1 || Math.abs(velY) > 1) {
+          rotateSphere(-velX * 0.003, -velY * 0.003);
+        }
+      }
+
+      // 1. Drag en el Canvas 3D principal
+      if (graphContainer) {
+        graphContainer.addEventListener('mousedown', (e) => {
+          // Si hace clic con botón secundario o en interfaz, ignorar
+          if (e.button !== 0) return;
+          startDrag(e.clientX, e.clientY);
+        });
+      }
+
+      // 2. Drag en el mini orbe HUD
+      if (orb) {
+        orb.addEventListener('mousedown', (e) => {
+          if (e.target.classList.contains('orb-arrow') || e.target.classList.contains('orb-center')) return;
+          startDrag(e.clientX, e.clientY);
+        });
+      }
+
+      // 3. Listeners globales para arrastre continuo incluso al salir del canvas
+      window.addEventListener('mousemove', (e) => {
+        updateDrag(e.clientX, e.clientY);
+      });
+
+      window.addEventListener('mouseup', () => {
+        endDrag();
+      });
+
+      // 4. Soporte táctil y gestures
+      if (graphContainer) {
+        graphContainer.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1) {
+            startDrag(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+          if (e.touches.length === 1) {
+            updateDrag(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => {
+          endDrag();
+        });
+      }
+    }
+
+    function zoomCamera(scaleFactor) {
+      targetRadius = Math.max(340, Math.min(1300, targetRadius * scaleFactor));
+    }
+
+    function toggleRotate() {
+      autoRotate = !autoRotate;
+      const pill = document.getElementById('auto-rotate-pill');
+      if (pill) pill.classList.toggle('active', autoRotate);
+    }
+
+    function resetCamera() {
+      focusedNodeId = null;
+      targetLookAt.set(0, 0, 0);
+      targetRadius = 660;
+      targetPhi = Math.PI * 0.5;
+      closeDrawer();
+      clearSearchSpotlight();
+    }
+
+    function focusNode(node) {
+      if (!node) return;
+      focusedNodeId = node.id;
+      
+      // 🚀 VUELO CINEMATOGRÁFICO DE LA CÁMARA AL NODO
+      targetLookAt.set(node.x || 0, node.y || 0, node.z || 0);
+      targetRadius = 140; // Acercamiento nítido para ver el nodo y sus vecinos
+      
+      // Auto-rotar pausa temporalmente para contemplar el nodo enfocado
+      autoRotate = false;
+      const pill = document.getElementById('auto-rotate-pill');
+      if (pill) pill.classList.remove('active');
+
+      // Hacer visible y destacar la etiqueta del nodo enfocado
+      if (node.__labelSprite) {
+        node.__labelSprite.visible = true;
+        node.__labelSprite.material.opacity = 1.0;
+        node.__labelSprite.scale.set(24, 4.6, 1);
+      }
+
+      openDrawer(node);
+    }
+
+    function renderMarkdownToHtml(markdownText) {
+      if (!markdownText) return '<p style="color: var(--text-muted);">Sin contenido adicional.</p>';
+      
+      let text = markdownText.replace(/^---[\s\S]*?---\s*/, '');
+      
+      // Transform inline [[wikilinks]] into interactive spans
+      text = text.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (match, target, alias) => {
+        const display = (alias || target).trim();
+        const safeTarget = target.trim().replace(/"/g, '&quot;');
+        return `<span class="inline-wikilink" data-target="${safeTarget}" onclick="selectByLabel(this.dataset.target)">🔗 ${display}</span>`;
+      });
+
+      if (typeof marked !== 'undefined' && marked.parse) {
+        try {
+          return marked.parse(text);
+        } catch(e) {
+          console.warn('marked parse error:', e);
+        }
+      }
+
+      // Fallback formatting
+      return text
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/^- (.*)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+        .replace(/\n\n/g, '<br><br>');
+    }
+
+    function selectByLabel(targetLabel) {
+      if (!targetLabel) return;
+      const cleanTarget = targetLabel.toLowerCase().replace(/^\[\[|\]\]$/g, '').trim();
+      const match = graphData.nodes.find(n => 
+        n.label.toLowerCase() === cleanTarget || 
+        n.id.toLowerCase() === cleanTarget ||
+        n.label.toLowerCase().includes(cleanTarget)
+      );
+      if (match) {
+        focusNode(match);
+      }
+    }
+
+    function openDrawer(node) {
+      const drawer = document.getElementById('drawer');
+      const tagEl = document.getElementById('drawer-group');
+      tagEl.innerText = node.group;
+      tagEl.style.backgroundColor = node.color + '22';
+      tagEl.style.color = node.color;
+      tagEl.style.border = '1px solid ' + node.color;
+
+      document.getElementById('drawer-title').innerText = node.label;
+      
+      const tagsContainer = document.getElementById('drawer-tags');
+      tagsContainer.innerHTML = (node.tags || []).map(t => '<span class="tag">#' + t + '</span>').join('');
+
+      const imgContainer = document.getElementById('drawer-image-container');
+      if (node.imageUrl) {
+        imgContainer.innerHTML = '<img src="' + node.imageUrl + '" class="preview-img" alt="' + node.label + '" />';
+      } else {
+        imgContainer.innerHTML = '';
+      }
+
+      document.getElementById('drawer-content').innerHTML = renderMarkdownToHtml(node.summary);
+
+      // Synaptic links
+      const connectedEdges = graphData.edges.filter(e => e.source === node.id || e.target === node.id);
+      const linksContainer = document.getElementById('drawer-wikilinks');
+      if (connectedEdges.length === 0) {
+        linksContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.8rem;">Sin conexiones directas</span>';
+      } else {
+        linksContainer.innerHTML = connectedEdges.map(e => {
+          const neighborId = e.source === node.id ? e.target : e.source;
+          const neighborNode = graphData.nodes.find(n => n.id === neighborId);
+          let label = neighborNode ? neighborNode.label : neighborId;
+          label = label.replace(/^\[\[|\]\]$/g, '').trim();
+          return '<div class="wikilink-item" data-id="' + neighborId + '" onclick="selectById(this.dataset.id)">🔗 ' + label + '</div>';
+        }).join('');
+      }
+
+      drawer.classList.add('open');
+    }
+
+    function selectById(nodeId) {
+      const target = graphData.nodes.find(n => n.id === nodeId);
+      if (target) focusNode(target);
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer').classList.remove('open');
+    }
+
+    let searchActive = false;
+    let matchingNodeIds = new Set();
+
+    function clearSearchSpotlight() {
+      searchActive = false;
+      matchingNodeIds.clear();
+      const nodes = (graphInstance && graphInstance.graphData && graphInstance.graphData().nodes) || [];
+      nodes.forEach(n => {
+        n.__searchMatch = false;
+        n.__searchConnected = false;
+        if (n.__labelSprite && !n.isRoot) {
+          n.__labelSprite.scale.set(18, 3.5, 1);
+        }
+      });
+      if (graphInstance) {
+        graphInstance.nodeColor(graphInstance.nodeColor());
+        graphInstance.linkColor(graphInstance.linkColor());
+      }
+    }
+
+    function onSearch(query) {
+      const q = (query || '').trim().toLowerCase();
+      if (!q) {
+        clearSearchSpotlight();
+        return;
+      }
+
+      searchActive = true;
+      matchingNodeIds.clear();
+
+      const nodes = (graphInstance && graphInstance.graphData && graphInstance.graphData().nodes) || [];
+      const edges = (graphInstance && graphInstance.graphData && graphInstance.graphData().links) || [];
+
+      // 1. Identificar coincidencias directas
+      const directMatches = [];
+      nodes.forEach(n => {
+        const match = (
+          (n.label && n.label.toLowerCase().includes(q)) ||
+          (n.tags && n.tags.some(t => t.toLowerCase().includes(q))) ||
+          (n.summary && n.summary.toLowerCase().includes(q)) ||
+          (n.group && n.group.toLowerCase().includes(q))
+        );
+        n.__searchMatch = match;
+        if (match) {
+          matchingNodeIds.add(n.id);
+          directMatches.push(n);
+        }
+      });
+
+      // 2. Iluminar conexiones directas con los nodos encontrados
+      edges.forEach(e => {
+        const sId = (e.source && e.source.id) || e.source;
+        const tId = (e.target && e.target.id) || e.target;
+        if (matchingNodeIds.has(sId)) matchingNodeIds.add(tId);
+        if (matchingNodeIds.has(tId)) matchingNodeIds.add(sId);
+      });
+
+      nodes.forEach(n => {
+        n.__searchConnected = matchingNodeIds.has(n.id);
+        if (n.__labelSprite) {
+          if (n.__searchMatch) {
+            n.__labelSprite.visible = true;
+            n.__labelSprite.material.opacity = 1.0;
+            n.__labelSprite.scale.set(24, 4.6, 1);
+          } else if (!n.__searchConnected && !n.isRoot) {
+            n.__labelSprite.visible = false;
+            n.__labelSprite.material.opacity = 0;
+          }
+        }
+      });
+
+      // 3. Volar la cámara hacia el resultado más relevante
+      if (directMatches.length > 0) {
+        const best = directMatches[0];
+        targetLookAt.set(best.x || 0, best.y || 0, best.z || 0);
+        targetRadius = Math.max(180, Math.min(320, 240));
+        showToast('🔍 ' + directMatches.length + ' nodo(s) iluminado(s) para: "' + q + '"');
+      } else {
+        showToast('⚠️ Sin coincidencias para: "' + q + '"');
+      }
+
+      // Re-evaluar colores para atenuar todo lo no relacionado
+      if (graphInstance) {
+        graphInstance.nodeColor(graphInstance.nodeColor());
+        graphInstance.linkColor(graphInstance.linkColor());
+      }
+    }
+
+
+    function filterGroup(group) {
+      const menu = document.getElementById("taxonomy-menu");
+      if (menu) menu.classList.remove("open");
+
+      if (group === "all") {
+        resetCamera();
+        return;
+      }
+
+      const match = graphData.nodes.find(n => n.group === group);
+      if (match) focusNode(match);
+    }
+
+    async function startApp() {
+      // Sync initial slider values from localStorage
+      const speedSlider = document.getElementById('orbital-speed-slider');
+      const speedText = document.getElementById('speed-val-text');
+      if (speedSlider) speedSlider.value = orbitalSpeedMultiplier;
+      if (speedText) speedText.innerText = orbitalSpeedMultiplier === 0 ? '0.0x' : orbitalSpeedMultiplier.toFixed(1) + 'x';
+
+      const brightSlider = document.getElementById('link-brightness-slider');
+      const brightText = document.getElementById('brightness-val-text');
+      if (brightSlider) brightSlider.value = linkBrightness;
+      if (brightText) brightText.innerText = Math.round(linkBrightness * 100) + '%';
+
+      await initGraph();
+      // Restaurar modo guardado en localStorage o hash de la URL
+      const savedMode = localStorage.getItem('okf_viz_mode') || (window.location.hash === '#galaxy' ? 'galaxy' : 'spherical');
+      if (savedMode === 'galaxy') {
+        setTimeout(() => switchVisualizationMode('galaxy', true), 120);
+      }
+      if (window.location.hash.includes('zoom=close')) {
+        targetRadius = 360;
+        currentRadius = 360;
+      }
+    }
+
+    // Initialize once DOM is ready or immediately if already loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startApp);
+    } else {
+      startApp();
+    }
+  </script>
+</body>
+</html>
