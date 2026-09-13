@@ -15,6 +15,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   dependencies: '#06b6d4',
   meetings: '#8b5cf6',
   preferences: '#f43f5e',
+  expenses: '#eab308',
+  expense: '#eab308',
   default: '#38bdf8'
 };
 
