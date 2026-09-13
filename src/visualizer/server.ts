@@ -21,7 +21,7 @@ export function startVisualizerServer(vaultDir: string, port = 4000) {
   app.use(express.static(publicDir));
 
   // Serve live graph data parsed directly from disk
-  app.get('/api/graph', (req, res) => {
+  app.get(['/api/graph', '/api/okf-graph'], (req, res) => {
     try {
       const targetDir = path.resolve(process.cwd(), vaultDir);
       const graphData = parseOKFVault(targetDir);
