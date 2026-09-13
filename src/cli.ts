@@ -7,7 +7,6 @@ import { scaffoldVault } from './core/scaffold.js';
 import { generateAIHarnesses } from './core/harness.js';
 import { consolidateDailyKnowledge } from './core/consolidator.js';
 import { parseOKFVault } from './core/parser.js';
-import { startVisualizerServer } from './visualizer/server.js';
 import { OKFConfig } from './types.js';
 
 const program = new Command();
@@ -55,20 +54,9 @@ program
   .option('-v, --vault <path>', 'Custom path to OKF vault')
   .action((options) => {
     const cwd = process.cwd();
-    let vaultPath = options.vault;
-
-    if (!vaultPath) {
-      const configPath = path.join(cwd, 'okf.config.json');
-      if (fs.existsSync(configPath)) {
-        const config: OKFConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        vaultPath = config.vaultPath;
-      } else {
-        vaultPath = fs.existsSync(path.join(cwd, 'brain')) ? './brain' : './';
-      }
-    }
-
-    const port = parseInt(options.port, 10) || 4000;
-    startVisualizerServer(vaultPath, port);
+    console.log(pc.yellow('\n⚠️ The built-in visualizer has been deprecated.'));
+    console.log(pc.white('Please use the standalone ') + pc.bold(pc.cyan('okf-galaxy-visualizer')) + pc.white(' repository instead.'));
+    console.log(pc.white('It contains the latest WebGL optimizations and custom styling rules.\n'));
   });
 
 // Command: consolidate
