@@ -19,6 +19,10 @@
 
 **OKF Brain** turns any project or workspace into an interconnected, self-learning knowledge vault governed by the **Open Knowledge Format v0.2 (OKF v0.2)**.
 
+<p align="center">
+  <img src="assets/architecture_ecosystem.svg" alt="OKF Brain &amp; Autonomous AI Ecosystem Architecture" width="100%" style="border-radius: 10px; border: 1px solid #334155;" />
+</p>
+
 Instead of flat, disorganized text files or opaque vector databases, **OKF Brain** models concepts as celestial solar systems:
 - **Central Stars (Root Nodes)**: Core project domains (e.g. `Architecture`, `Decisions`, `Contacts`, `Learnings`).
 - **Planets (Subnodes)**: Atomic markdown files with strict YAML frontmatter, revolving in Keplerian orbits.
