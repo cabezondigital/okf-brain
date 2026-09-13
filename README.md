@@ -55,6 +55,20 @@ npx okf-brain init
 
 ---
 
+## 🎮 3D Visualizer Controls & Hotkeys
+
+When running `npx okf-brain viz`, the visualizer provides executive navigation controls:
+
+- **🎯 Cluster Fly-To**: Open **Categories** in the top bar and click the `🎯` target icon next to any group to smoothly fly the camera directly into that stellar cluster.
+- **🎨 Chromatic Palette**: Each category features an illuminated chromatic dot and hex badge matching its 3D orbital stars.
+- **🎛️ Glass Bottom HUD**: Adjust star brightness (✨), orbital speed (⏱️), and node scale (🪐) smoothly in real time.
+- **⌨️ Keyboard Shortcuts**:
+  - `H`: Toggle Hide/Show UI for clean presentations and screenshots.
+  - `O`: Toggle auto-rotation on/off.
+  - `ESC`: Clear search and refocus camera.
+
+---
+
 ## 🤖 One-Click AI Prompts (Copy & Paste for Claude & Gemini)
 
 Equip any existing repository or workspace with an **OKF Brain** simply by pasting one of the following prompts into your AI coding assistant:
